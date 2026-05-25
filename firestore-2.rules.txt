@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Foydalanuvchi profili: faqat o'zi o'qishi va yozishi mumkin
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Test natijalari:
+    // - O'quvchi faqat o'zining natijasini ko'ra oladi
+    // - Admin (email orqali) barcha natijalarni ko'ra oladi
+    // - Natijani faqat bir marta yozish mumkin (mavjud bo'lmasa)
+    match /results/{userId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId ||
+         request.auth.token.email == "admin@kymo.uz"); // ← ADMIN EMAIL
+
+      allow create: if request.auth != null &&
+        request.auth.uid == userId &&
+        !exists(/databases/$(database)/documents/results/$(userId));
+
+      allow update, delete: if false; // Natijani o'zgartirib bo'lmaydi!
+    }
+
+  }
+}

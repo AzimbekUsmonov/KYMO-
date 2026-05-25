@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>KYMO — Kelajak Yulduzlari</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#020408">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg0: #020408;
+      --bg1: #080d18;
+      --bg2: #0f1628;
+      --bg3: #161e35;
+      --gold: #f5c518;
+      --gold2: #e8a820;
+      --gold3: rgba(245,197,24,0.12);
+      --blue: #4a9eff;
+      --blue2: #1d6fd8;
+      --green: #4ade80;
+      --red: #f87171;
+      --orange: #fb923c;
+      --text: #e8eaf0;
+      --text2: #8892a4;
+      --text3: #4a5568;
+      --border: rgba(255,255,255,0.07);
+      --card: rgba(255,255,255,0.035);
+      --fo: 'Orbitron', monospace;
+      --fb: 'Outfit', sans-serif;
+      --radius: 16px;
+      --radius2: 12px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; }
+    body {
+      font-family: var(--fb);
+      background: var(--bg0);
+      color: var(--text);
+      position: relative;
+    }
+
+    /* ── Stars Canvas ── */
+    #stars { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+    /* ── Screens ── */
+    .screen {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Welcome ── */
+    #s-welcome {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(245,197,24,0.08) 0%, transparent 70%);
+    }
+    .welcome-inner { text-align:center; max-width:380px; width:100%; }
+    .logo-star {
+      font-size: 72px;
+      display: block;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 24px rgba(245,197,24,0.6));
+      animation: floatStar 3s ease-in-out infinite;
+    }
+    @keyframes floatStar {
+      0%,100% { transform: translateY(0) rotate(-5deg); }
+      50% { transform: translateY(-12px) rotate(5deg); }
+    }
+    .kymo-title {
+      font-family: var(--fo);
+      font-size: clamp(28px, 8vw, 42px);
+      font-weight: 900;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #f5c518, #fff 50%, #f5c518);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .kymo-sub {
+      font-size: 13px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .kymo-sub strong { color: var(--gold); }
+    .welcome-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gold3);
+      border: 1px solid rgba(245,197,24,0.25);
+      border-radius: 50px;
+      padding: 8px 20px;
+      font-size: 13px;
+      color: var(--gold);
+      margin-bottom: 40px;
+    }
+    .welcome-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .info-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      padding: 16px 8px;
+      text-align: center;
+    }
+    .info-card .num {
+      font-family: var(--fo);
+      font-size: 22px;
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .info-card .lbl { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: none;
+      font-family: var(--fb);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, #f5c518, #e8a820);
+      color: #020408;
+      box-shadow: 0 4px 20px rgba(245,197,24,0.3);
+    }
+    .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(245,197,24,0.45); }
+    .btn-gold:active { transform: translateY(0); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: var(--card); border-color: rgba(255,255,255,0.15); }
+    .btn-blue {
+      background: linear-gradient(135deg, #4a9eff, #1d6fd8);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(74,158,255,0.25);
+    }
+    .btn-blue:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(74,158,255,0.4); }
+    .btn-red {
+      background: linear-gradient(135deg, #f87171, #dc2626);
+      color: #fff;
+    }
+    .btn-sm {
+      padding: 10px 20px;
+      font-size: 13px;
+      width: auto;
+    }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+
+    /* ── Auth Screen ── */
+    #s-auth {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-box {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 420px;
+    }
+    .auth-header { text-align:center; margin-bottom: 28px; }
+    .auth-header h2 { font-family: var(--fo); font-size: 16px; color: var(--gold); letter-spacing: 2px; }
+    .auth-header p { font-size: 13px; color: var(--text2); margin-top: 6px; }
+    .tab-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg2);
+      border-radius: var(--radius2);
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      font-family: var(--fb);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--gold);
+      color: var(--bg0);
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display:block; letter-spacing: 0.5px; }
+    .form-input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: var(--fb);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--gold); }
+    .form-input::placeholder { color: var(--text3); }
+    select.form-input { cursor: pointer; }
+    select.form-input option { background: var(--bg2); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .auth-switch { text-align:center; font-size: 13px; color: var(--text2); margin-top: 16px; }
+    .auth-switch a { color: var(--gold); cursor: pointer; text-decoration: none; }
+    .error-msg {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: var(--radius2);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--red);
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    /* ── Dashboard Screen ── */
+    #s-dashboard {
+      padding: 0;
+    }
+    .dash-header {
+      background: linear-gradient(180deg, var(--bg1) 0%, transparent 100%);
+      padding: 20px 20px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(20px);
+    }
+    .dash-logo { font-family: var(--fo); font-size: 14px; color: var(--gold); letter-spacing: 2px; }
+    .dash-user { display:flex; align-items:center; gap: 10px; }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--bg0);
+    }
+    .dash-body { padding: 20px; }
+    .dash-welcome-card {
+      background: linear-gradient(135deg, rgba(245,197,24,0.1), rgba(245,197,24,0.03));
+      border: 1px solid rgba(245,197,24,0.2);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .dash-welcome-card::before {
+      content: '⭐';
+      position: absolute;
+      right: -10px;
+      top: -10px;
+      font-size: 80px;
+      opacity: 0.08;
+      transform: rotate(15deg);
+    }
+    .dash-welcome-card h2 { font-family: var(--fo); font-size: 15px; color: var(--gold); margin-bottom: 6px; letter-spacing: 1px; }
+    .dash-welcome-card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .dash-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .stat-card .s-icon { font-size: 24px; margin-bottom: 8px; }
+    .stat-card .s-val { font-family: var(--fo); font-size: 20px; font-weight: 700; color: var(--text); }
+    .stat-card .s-lbl { font-size: 11px; color: var(--text2); margin-top: 3px; }
+    .test-status-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .test-status-card h3 { font-size: 14px; color: var(--text2); margin-bottom: 16px; letter-spacing: 0.5px; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .status-badge.pending { background: rgba(251,146,60,0.15); color: var(--orange); border: 1px solid rgba(251,146,60,0.3); }
+    .status-badge.done { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+    .test-info-row { display:flex; gap:16px; margin-bottom: 20px; }
+    .test-info-item { display:flex; align-items:center; gap:6px; font-size:13px; color: var(--text2); }
+    .test-info-item span:first-child { font-size:16px; }
+    .admin-btn {
+      background: rgba(74,158,255,0.1);
+      border: 1px solid rgba(74,158,255,0.2);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      color: var(--blue);
+      font-family: var(--fb);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+    .admin-btn:hover { background: rgba(74,158,255,0.15); }
+
+    /* ── Test Screen ── */
+    #s-test { background: var(--bg0); padding:0; }
+    .test-header {
+      padding: 16px 20px;
+      background: var(--bg1);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .test-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .test-qnum { font-size: 13px; color: var(--text2); }
+    .timer-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-family: var(--fo);
+      font-size: 15px;
+      color: var(--text);
+    }
+    .timer-box.warning { border-color: rgba(248,113,113,0.4); color: var(--red); animation: timerPulse 1s infinite; }
+    @keyframes timerPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    .progress-bar {
+      height: 4px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold2), var(--gold));
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .test-body { padding: 24px 20px; max-width: 600px; margin: 0 auto; }
+    .question-card {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .q-badge {
+      display: inline-block;
+      background: var(--gold3);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 50px;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+    }
+    .q-text {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .options-grid { display: flex; flex-direction: column; gap: 10px; }
+    .option-btn {
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius2);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      width: 100%;
+      font-family: var(--fb);
+      color: var(--text);
+    }
+    .option-btn:hover { border-color: rgba(245,197,24,0.4); background: rgba(245,197,24,0.05); }
+    .option-btn.selected { border-color: var(--gold); background: var(--gold3); }
+    .option-btn.correct { border-color: var(--green); background: rgba(74,222,128,0.1); }
+    .option-btn.wrong { border-color: var(--red); background: rgba(248,113,113,0.1); }
+    .option-btn:disabled { cursor: default; }
+    .opt-letter {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .option-btn.selected .opt-letter { background: var(--gold); color: var(--bg0); }
+    .option-btn.correct .opt-letter { background: var(--green); color: var(--bg0); }
+    .option-btn.wrong .opt-letter { background: var(--red); color: #fff; }
+    .opt-text { font-size: 15px; }
+    .test-nav {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px 32px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── Result Screen ── */
+    #s-result {
+      align-items: center;
+      justify-content: flex-start;
+      padding: 24px;
+      padding-top: 40px;
+    }
+    .result-inner { max-width: 440px; width: 100%; }
+    .result-trophy {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .trophy-icon {
+      font-size: 80px;
+      display: block;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px rgba(245,197,24,0.5));
+      animation: floatStar 3s ease-in-out infinite;
+    }
+    .result-title {
+      font-family: var(--fo);
+      font-size: 13px;
+      color: var(--text2);
+      letter-spacing: 2px;
+    }
+    .score-circle-wrap { display:flex; justify-content:center; margin-bottom: 28px; }
+    .score-circle {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 3px solid var(--gold);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--gold3);
+      box-shadow: 0 0 40px rgba(245,197,24,0.2), inset 0 0 40px rgba(245,197,24,0.05);
+    }
+    .score-num {
+      font-family: var(--fo);
+      font-size: 42px;
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .score-denom { font-size: 16px; color: var(--text2); }
+    .score-pct {
+      font-family: var(--fo);
+      font-size: 16px;
+      color: var(--gold2);
+      margin-top: 4px;
+    }
+    .result-verdict {
+      text-align: center;
+      padding: 20px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .result-verdict.aaa {
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.25);
+    }
+    .result-verdict.bb {
+      background: rgba(74,158,255,0.08);
+      border: 1px solid rgba(74,158,255,0.2);
+    }
+    .result-verdict.cc {
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+    .verdict-emoji { font-size: 36px; margin-bottom: 8px; display:block; }
+    .verdict-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .verdict-sub { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .result-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .detail-card .dv {
+      font-family: var(--fo);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .detail-card .dl { font-size: 11px; color: var(--text2); }
+    .detail-card.correct .dv { color: var(--green); }
+    .detail-card.wrong .dv { color: var(--red); }
+    .detail-card.time .dv { color: var(--blue); }
+
+    /* ── Admin Screen ── */
+    #s-admin { padding: 0; }
+    .admin-header {
+      padding: 16px 20px;
+      background: var(--bg1);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .admin-header h2 { font-family: var(--fo); font-size: 13px; color: var(--gold); letter-spacing: 2px; }
+    .admin-body { padding: 20px; }
+    .admin-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .admin-sum-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .admin-sum-card .asv { font-family: var(--fo); font-size: 20px; color: var(--gold); font-weight:700; }
+    .admin-sum-card .asl { font-size: 10px; color: var(--text2); margin-top: 3px; }
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      padding: 7px 16px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text2);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--fb);
+    }
+    .filter-chip.active { background: var(--gold3); border-color: rgba(245,197,24,0.4); color: var(--gold); }
+    .results-table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th {
+      background: var(--bg2);
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--text2);
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 13px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .rank-a { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+    .rank-b { background: rgba(74,158,255,0.12); color: var(--blue); border: 1px solid rgba(74,158,255,0.2); }
+    .rank-c { background: var(--card); color: var(--text2); border: 1px solid var(--border); }
+    .loading-spinner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      flex-direction: column;
+      gap: 16px;
+      color: var(--text2);
+      font-size: 14px;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 12px 24px;
+      font-size: 14px;
+      color: var(--text);
+      z-index: 100;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: rgba(74,222,128,0.3); color: var(--green); }
+    .toast.error { border-color: rgba(248,113,113,0.3); color: var(--red); }
+    .confirm-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2,4,8,0.85);
+      z-index: 50;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(8px);
+    }
+    .confirm-modal.active { display: flex; }
+    .confirm-box {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    .confirm-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .confirm-box p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
+    .confirm-btns { display: flex; gap: 12px; }
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+    @media (max-width: 360px) {
+      .admin-summary { grid-template-columns: repeat(2,1fr); }
+      .result-details { grid-template-columns: 1fr 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="confirm-modal" id="modal-finish">
+  <div class="confirm-box">
+    <h3>✅ Testni yakunlash</h3>
+    <p>Hali javob berganmagan savollar bor bo'lishi mumkin. Testni yakunlashni tasdiqlaysizmi?</p>
+    <div class="confirm-btns">
+      <button class="btn btn-outline" onclick="closeModal()">Bekor qilish</button>
+      <button class="btn btn-gold" onclick="confirmFinish()">Yakunlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: WELCOME ===================== -->
+<div class="screen active" id="s-welcome">
+  <div class="welcome-inner" style="margin:auto">
+    <span class="logo-star">⭐</span>
+    <div class="kymo-title">KYMO</div>
+    <div class="kymo-sub">
+      <strong>Kelajak Yulduzlari</strong><br>
+      Matematika Olimpiadasi
+    </div>
+    <div class="welcome-badge">
+      🎓 3 · 4 · 5 — sinflar uchun
+    </div>
+    <div class="welcome-info">
+      <div class="info-card">
+        <div class="num">15</div>
+        <div class="lbl">Savol</div>
+      </div>
+      <div class="info-card">
+        <div class="num">45</div>
+        <div class="lbl">Daqiqa</div>
+      </div>
+      <div class="info-card">
+        <div class="num">1x</div>
+        <div class="lbl">Urinish</div>
+      </div>
+    </div>
+    <button class="btn btn-gold" onclick="show('s-auth')">
+      🚀 Boshlash
+    </button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: AUTH ===================== -->
+<div class="screen" id="s-auth">
+  <div style="margin:auto; width:100%; max-width:420px; padding:24px;">
+    <div class="auth-box">
+      <div class="auth-header">
+        <h2>KYMO — KIRISH</h2>
+        <p>Olimpiadaga qatnashish uchun ro'yxatdan o'ting</p>
+      </div>
+      <div class="tab-row">
+        <button class="tab-btn active" id="tab-reg" onclick="switchTab('reg')">Ro'yxatdan o'tish</button>
+        <button class="tab-btn" id="tab-login" onclick="switchTab('login')">Kirish</button>
+      </div>
+      <div class="error-msg" id="auth-error"></div>
+
+      <!-- REGISTER FORM -->
+      <div id="form-reg">
+        <div class="form-group">
+          <label class="form-label">ISM FAMILIYA</label>
+          <input class="form-input" id="reg-name" type="text" placeholder="Masalan: Alisher Karimov" autocomplete="name">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">MAKTAB</label>
+            <input class="form-input" id="reg-school" type="text" placeholder="Masalan: 15-maktab">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SINF</label>
+            <select class="form-input" id="reg-grade">
+              <option value="">Tanlang</option>
+              <option value="3">3-sinf</option>
+              <option value="4">4-sinf</option>
+              <option value="5">5-sinf</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">EMAIL (ota-ona emaili)</label>
+          <input class="form-input" id="reg-email" type="email" placeholder="email@gmail.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PAROL (kamida 6 ta belgi)</label>
+          <input class="form-input" id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <button class="btn btn-gold" id="reg-btn" onclick="doRegister()">✨ Ro'yxatdan o'tish</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="form-login" style="display:none">
+        <div class="form-group">
+          <label class="form-label">EMAIL</label>
+          <input class="form-input" id="login-email" type="email" placeholder="email@gmail.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PAROL</label>
+          <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-gold" id="login-btn" onclick="doLogin()">🔓 Kirish</button>
+      </div>
+
+      <div class="auth-switch" id="auth-switch-text">
+        Akkauntingiz bormi? <a onclick="switchTab('login')">Kirish</a>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:16px;">
+      <button class="btn btn-outline btn-sm" style="width:auto; margin:auto;" onclick="show('s-welcome')">← Orqaga</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: DASHBOARD ===================== -->
+<div class="screen" id="s-dashboard">
+  <div class="dash-header">
+    <div class="dash-logo">⭐ KYMO</div>
+    <div class="dash-user">
+      <div class="avatar" id="dash-avatar">A</div>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()" style="padding:8px 14px; font-size:12px;">Chiqish</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-welcome-card">
+      <h2 id="dash-greeting">Salom, o'quvchi!</h2>
+      <p id="dash-info">Maktab va sinf ma'lumotlari yuklanmoqda...</p>
+    </div>
+    <div class="dash-stats">
+      <div class="stat-card">
+        <div class="s-icon">🏫</div>
+        <div class="s-val" id="dash-school">—</div>
+        <div class="s-lbl">Maktab</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-icon">📚</div>
+        <div class="s-val" id="dash-grade">—</div>
+        <div class="s-lbl">Sinf</div>
+      </div>
+    </div>
+    <div class="test-status-card">
+      <h3>TEST HOLATI</h3>
+      <div class="status-badge pending" id="test-status-badge">⏳ Kutilmoqda</div>
+      <div class="test-info-row">
+        <div class="test-info-item"><span>📝</span><span>15 ta savol</span></div>
+        <div class="test-info-item"><span>⏱</span><span>45 daqiqa</span></div>
+        <div class="test-info-item"><span>🔒</span><span>1 marta</span></div>
+      </div>
+      <div id="test-action-area">
+        <button class="btn btn-gold" onclick="startTest()" id="start-test-btn">
+          🚀 Testni boshlash
+        </button>
+      </div>
+    </div>
+    <div id="admin-section" style="display:none">
+      <div class="divider"></div>
+      <button class="admin-btn" onclick="show('s-admin'); loadAdmin()">
+        <span>👑 Admin panel — barcha natijalar</span>
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: TEST ===================== -->
+<div class="screen" id="s-test">
+  <div class="test-header">
+    <div class="test-top">
+      <div class="test-qnum" id="test-qnum">Savol 1 / 15</div>
+      <div class="timer-box" id="timer-box">⏱ <span id="timer-text">45:00</span></div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="test-progress" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="test-body">
+    <div class="question-card">
+      <div class="q-badge" id="q-badge">SAVOL 1</div>
+      <div class="q-text" id="q-text">Savol yuklanmoqda...</div>
+    </div>
+    <div class="options-grid" id="options-grid">
+    </div>
+  </div>
+  <div class="test-nav">
+    <button class="btn btn-outline" id="btn-prev" onclick="prevQ()" disabled>← Oldingi</button>
+    <button class="btn btn-blue" id="btn-next" onclick="nextQ()">Keyingi →</button>
+    <button class="btn btn-gold" id="btn-finish" onclick="askFinish()" style="display:none">✅ Yakunlash</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: RESULT ===================== -->
+<div class="screen" id="s-result">
+  <div class="result-inner" style="margin:0 auto; padding-bottom:32px;">
+    <div class="result-trophy">
+      <span class="trophy-icon" id="result-trophy">🏆</span>
+      <div class="result-title">KYMO — NATIJANGIZ</div>
+    </div>
+    <div class="score-circle-wrap">
+      <div class="score-circle">
+        <div class="score-num" id="res-score">0</div>
+        <div class="score-denom" id="res-denom">/15 ball</div>
+        <div class="score-pct" id="res-pct">0%</div>
+      </div>
+    </div>
+    <div class="result-verdict" id="result-verdict">
+      <span class="verdict-emoji" id="verdict-emoji">🎉</span>
+      <div class="verdict-title" id="verdict-title">Barakalla!</div>
+      <div class="verdict-sub" id="verdict-sub">Natijangiz chiqdi.</div>
+    </div>
+    <div class="result-details">
+      <div class="detail-card correct">
+        <div class="dv" id="res-correct">0</div>
+        <div class="dl">To'g'ri</div>
+      </div>
+      <div class="detail-card wrong">
+        <div class="dv" id="res-wrong">0</div>
+        <div class="dl">Noto'g'ri</div>
+      </div>
+      <div class="detail-card time">
+        <div class="dv" id="res-time">—</div>
+        <div class="dl">Vaqt</div>
+      </div>
+    </div>
+    <button class="btn btn-outline" onclick="show('s-dashboard')">← Dashboard</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: ADMIN ===================== -->
+<div class="screen" id="s-admin">
+  <div class="admin-header">
+    <button class="btn btn-outline btn-sm" onclick="show('s-dashboard')" style="width:auto; padding:8px 14px; font-size:12px;">← Orqaga</button>
+    <h2>👑 ADMIN PANEL</h2>
+  </div>
+  <div class="admin-body">
+    <div class="admin-summary">
+      <div class="admin-sum-card"><div class="asv" id="adm-total">0</div><div class="asl">Jami</div></div>
+      <div class="admin-sum-card"><div class="asv" id="adm-s3">0</div><div class="asl">3-sinf</div></div>
+      <div class="admin-sum-card"><div class="asv" id="adm-s4">0</div><div class="asl">4-sinf</div></div>
+      <div class="admin-sum-card"><div class="asv" id="adm-s5">0</div><div class="asl">5-sinf</div></div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="filterAdmin('all',this)">Barchasi</button>
+      <button class="filter-chip" onclick="filterAdmin('3',this)">3-sinf</button>
+      <button class="filter-chip" onclick="filterAdmin('4',this)">4-sinf</button>
+      <button class="filter-chip" onclick="filterAdmin('5',this)">5-sinf</button>
+      <button class="filter-chip" onclick="filterAdmin('top',this)">🏆 Top</button>
+    </div>
+    <div id="admin-content">
+      <div class="loading-spinner"><div class="spinner"></div>Yuklanmoqda...</div>
+    </div>
+    <button class="btn btn-outline" onclick="exportCSV()" style="margin-top:8px;">📥 CSV yuklab olish</button>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// ⚠️ FIREBASE CONFIG — O'Z LOYIHANGIZ CONFIG'ini QUYIDAGIGA QO'YING!
+// Firebase Console → Project Settings → Your apps → SDK setup
+// ================================================================
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// ⚠️ ADMIN EMAIL — o'z emailingizni yozing (bosh harf bo'lmassin)
+const ADMIN_EMAIL = "admin@kymo.uz"; // ← BU YERNI O'ZGARTIRING!
+
+// ================================================================
+// QUESTIONS DATABASE — 15 ta savol × 3 sinf
+// ================================================================
+const QUESTIONS = {
+  3: [
+    { q:"1 dan 10 gacha bo'lgan barcha natural sonlar yig'indisi qancha?", opts:["45","50","55","60"], ans:2 },
+    { q:"5 ta ot va 3 ta tovuq bor. Hammasi bo'lib nechta oyoq bor?", opts:["22","24","26","28"], ans:2 },
+    { q:"Kvadratning perimetri 20 sm bo'lsa, uning tomoni necha sm bo'ladi?", opts:["4 sm","5 sm","6 sm","10 sm"], ans:1 },
+    { q:"Kitobda 48 bet bor. Har kuni 6 bet o'qilsa, necha kunda tugatiladi?", opts:["6 kun","7 kun","8 kun","9 kun"], ans:2 },
+    { q:"Uchburchak 3 ta va to'rtburchak 2 ta bo'lsa, jami nechta burchak bor?", opts:["14","15","17","18"], ans:2 },
+    { q:"56 ÷ 7 + 5 = ?", opts:["11","12","13","14"], ans:2 },
+    { q:"To'g'ri to'rtburchakning uzunligi 9 sm, eni 6 sm. Yuzi necha sm² ?", opts:["30","48","54","72"], ans:2 },
+    { q:"5, 8, 11, 14, __ ? Keyingi son nima?", opts:["15","16","17","18"], ans:2 },
+    { q:"Eng kichik 3 ta tub sonning yig'indisi qancha?", opts:["8","9","10","11"], ans:2 },
+    { q:"1 soat 30 daqiqa + 45 daqiqa = ?", opts:["1 soat 45 daqiqa","2 soat","2 soat 15 daqiqa","2 soat 30 daqiqa"], ans:2 },
+    { q:"Agar 3 ta olma 12 so'm tursa, 7 ta olma necha so'm turadi?", opts:["21 so'm","24 so'm","28 so'm","36 so'm"], ans:2 },
+    { q:"100 dan kichik bo'lgan juft sonlar nechta?", opts:["48","49","50","51"], ans:2 },
+    { q:"Savat ichida olmalar bor. 5 ta olib qo'yilsa 8 ta qoladi. Avval nechta edi?", opts:["3","8","13","40"], ans:2 },
+    { q:"Qaysi son 7 ga ham 3 ga ham bo'linadi?", opts:["14","21","24","27"], ans:1 },
+    { q:"Ahmodbek 8 ta do'stiga 3 tadan konfet ulashdi. U nechta konfet sarfladi?", opts:["11","21","24","30"], ans:2 }
+  ],
+  4: [
+    { q:"37 × 8 = ?", opts:["286","292","296","304"], ans:2 },
+    { q:"НОД(12, 18) = ?", opts:["3","4","6","9"], ans:2 },
+    { q:"½ + ¼ = ?", opts:["¾","2/6","1/3","2/4"], ans:0 },
+    { q:"Kvadratning yuzi 49 sm². Perimetri necha sm?", opts:["14","21","28","56"], ans:2 },
+    { q:"0.5 × 8 = ?", opts:["0.4","4","0.04","40"], ans:1 },
+    { q:"40 ning 25% i qancha?", opts:["8","10","12","16"], ans:1 },
+    { q:"2⁵ = ?", opts:["10","16","32","64"], ans:2 },
+    { q:"1, 1, 2, 3, 5, 8, __ ? (Fibonachchi)", opts:["10","11","12","13"], ans:3 },
+    { q:"Uchburchakning barcha burchaklari yig'indisi?", opts:["90°","120°","180°","360°"], ans:2 },
+    { q:"18 ning nechta natural bo'luvchisi bor?", opts:["4","5","6","8"], ans:2 },
+    { q:"3 km 500 m = necha metr?", opts:["350 m","1500 m","3050 m","3500 m"], ans:3 },
+    { q:"To'g'ri burchakli uchburchak katetlari 3 va 4 sm. Gipotenuzasi?", opts:["5 sm","6 sm","7 sm","8 sm"], ans:0 },
+    { q:"144 ÷ 12 = ?", opts:["10","11","12","13"], ans:2 },
+    { q:"12.5 − 7.3 = ?", opts:["4.2","5.2","5.8","6.2"], ans:1 },
+    { q:"x + 15 = 42 bo'lsa, x = ?", opts:["25","26","27","28"], ans:2 }
+  ],
+  5: [
+    { q:"НОД(36, 48) = ?", opts:["6","8","12","18"], ans:2 },
+    { q:"НОК(4, 6) = ?", opts:["8","10","12","24"], ans:2 },
+    { q:"⅔ × ¾ = ?", opts:["5/12","1/2","6/8","1/3"], ans:1 },
+    { q:"√144 = ?", opts:["10","11","12","13"], ans:2 },
+    { q:"3x − 7 = 14 bo'lsa, x = ?", opts:["5","6","7","8"], ans:2 },
+    { q:"x² = 9 tenglamaning yechimlar soni?", opts:["0 ta","1 ta","2 ta","3 ta"], ans:2 },
+    { q:"−3 + (−5) = ?", opts:["2","-2","-8","8"], ans:2 },
+    { q:"15% × 240 = ?", opts:["24","30","36","40"], ans:2 },
+    { q:"To'g'ri to'rtburchak: perimetri 28, eni 5 sm. Uzunligi necha sm?", opts:["7","8","9","10"], ans:2 },
+    { q:"2³ + 3² = ?", opts:["13","15","17","19"], ans:2 },
+    { q:"Muntazam sakkizburchakning har bir ichki burchagi necha gradus?", opts:["100°","120°","135°","145°"], ans:2 },
+    { q:"Birinchi 10 ta natural son yig'indisi?", opts:["45","50","55","60"], ans:2 },
+    { q:"7/12 − 1/4 = ?", opts:["1/3","5/12","1/2","6/12"], ans:0 },
+    { q:"a = 5, b = 3 bo'lsa, a² − b² = ?", opts:["4","8","16","34"], ans:2 },
+    { q:"0.75 oddiy kasr ko'rinishida?", opts:["7/10","3/4","7/8","4/5"], ans:1 }
+  ]
+};
+
+// ================================================================
+// APP STATE
+// ================================================================
+let auth, db;
+let currentUser = null;
+let userProfile = null;
+let allResults = [];
+
+let testState = {
+  active: false,
+  grade: null,
+  questions: [],
+  answers: [],   // null = javob berilmagan
+  current: 0,
+  startTime: null,
+  timeLeft: 45 * 60,
+  timerInterval: null
+};
+
+// ================================================================
+// INIT
+// ================================================================
+firebase.initializeApp(firebaseConfig);
+auth = firebase.auth();
+db = firebase.firestore();
+
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    await loadUserProfile();
+    show('s-dashboard');
+  } else {
+    currentUser = null;
+    userProfile = null;
+    show('s-welcome');
+  }
+});
+
+// Stars canvas
+(function() {
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize() {
+    c.width = innerWidth;
+    c.height = innerHeight;
+  }
+  function init() {
+    resize();
+    stars = Array.from({length:120}, () => ({
+      x: Math.random() * c.width,
+      y: Math.random() * c.height,
+      r: Math.random() * 1.2 + 0.2,
+      o: Math.random(),
+      s: Math.random() * 0.005 + 0.002
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s => {
+      s.o += s.s;
+      if(s.o > 1 || s.o < 0) s.s *= -1;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${s.o*0.7})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', init);
+  init();
+  draw();
+})();
+
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(id).scrollTop = 0;
+}
+
+// ================================================================
+// AUTH
+// ================================================================
+function switchTab(tab) {
+  document.getElementById('form-reg').style.display = tab==='reg' ? 'block' : 'none';
+  document.getElementById('form-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('tab-reg').className = 'tab-btn' + (tab==='reg' ? ' active' : '');
+  document.getElementById('tab-login').className = 'tab-btn' + (tab==='login' ? ' active' : '');
+  document.getElementById('auth-switch-text').innerHTML = tab==='reg'
+    ? 'Akkauntingiz bormi? <a onclick="switchTab(\'login\')">Kirish</a>'
+    : 'Akkauntingiz yo\'qmi? <a onclick="switchTab(\'reg\')">Ro\'yxatdan o\'tish</a>';
+  hideError();
+}
+
+function showError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function doRegister() {
+  const name   = document.getElementById('reg-name').value.trim();
+  const school = document.getElementById('reg-school').value.trim();
+  const grade  = document.getElementById('reg-grade').value;
+  const email  = document.getElementById('reg-email').value.trim();
+  const pass   = document.getElementById('reg-pass').value;
+  hideError();
+  if (!name || !school || !grade || !email || !pass) return showError("Barcha maydonlarni to'ldiring!");
+  if (pass.length < 6) return showError("Parol kamida 6 ta belgi bo'lishi kerak!");
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Yuklanmoqda...';
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await db.collection('users').doc(cred.user.uid).set({
+      name, school, grade: parseInt(grade), email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('Muvaffaqiyatli ro\'yxatdan o\'tdingiz! 🎉', 'success');
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '✨ Ro\'yxatdan o\'tish';
+    showError(firebaseError(e.code));
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  hideError();
+  if (!email || !pass) return showError("Email va parolni kiriting!");
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Kirilmoqda...';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '🔓 Kirish';
+    showError(firebaseError(e.code));
+  }
+}
+
+async function doLogout() {
+  if(testState.active) return toast("Test vaqtida chiqib ketib bo'lmaydi!", 'error');
+  await auth.signOut();
+}
+
+function firebaseError(code) {
+  const map = {
+    'auth/email-already-in-use': 'Bu email allaqachon ro\'yxatdan o\'tgan!',
+    'auth/invalid-email': 'Email noto\'g\'ri formatda!',
+    'auth/weak-password': 'Parol juda zaif!',
+    'auth/user-not-found': 'Bu email topilmadi!',
+    'auth/wrong-password': 'Parol noto\'g\'ri!',
+    'auth/invalid-credential': 'Email yoki parol noto\'g\'ri!',
+    'auth/too-many-requests': 'Juda ko\'p urinish! Biroz kuting.'
+  };
+  return map[code] || 'Xatolik yuz berdi. Qayta urining.';
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+async function loadUserProfile() {
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  if (doc.exists) {
+    userProfile = doc.data();
+    // Update UI
+    const initials = userProfile.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('dash-avatar').textContent = initials;
+    document.getElementById('dash-greeting').textContent = `Salom, ${userProfile.name.split(' ')[0]}! 👋`;
+    document.getElementById('dash-info').textContent = `KYMO olimpiadasiga xush kelibsiz!`;
+    document.getElementById('dash-school').textContent = userProfile.school;
+    document.getElementById('dash-grade').textContent = userProfile.grade + '-sinf';
+    // Check if admin
+    if (currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      document.getElementById('admin-section').style.display = 'block';
+    }
+    // Check test status
+    await checkTestStatus();
+  }
+}
+
+async function checkTestStatus() {
+  const resultDoc = await db.collection('results').doc(currentUser.uid).get();
+  const area = document.getElementById('test-action-area');
+  const badge = document.getElementById('test-status-badge');
+  if (resultDoc.exists) {
+    const r = resultDoc.data();
+    const pct = Math.round((r.score / 15) * 100);
+    badge.className = 'status-badge done';
+    badge.textContent = `✅ Yakunlangan — ${r.score}/15 (${pct}%)`;
+    area.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Sizning natijangiz</div>
+        <div style="font-family:var(--fo);font-size:24px;color:var(--gold)">${r.score}/15</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:4px;">${pct}% • ${getVerdict(pct).title}</div>
+      </div>
+      <button class="btn btn-outline" onclick="showMyResult()">📊 Batafsil natija</button>`;
+  } else {
+    badge.className = 'status-badge pending';
+    badge.textContent = '⏳ Hali topshirilmagan';
+    area.innerHTML = `<button class="btn btn-gold" onclick="startTest()">🚀 Testni boshlash</button>`;
+  }
+}
+
+async function showMyResult() {
+  const doc = await db.collection('results').doc(currentUser.uid).get();
+  if(doc.exists) {
+    renderResult(doc.data());
+    show('s-result');
+  }
+}
+
+// ================================================================
+// TEST LOGIC
+// ================================================================
+async function startTest() {
+  // Check if already taken
+  const r = await db.collection('results').doc(currentUser.uid).get();
+  if(r.exists) return toast("Siz allaqachon test topshirgansiz!", 'error');
+
+  const grade = userProfile.grade;
+  const qs = [...QUESTIONS[grade]]; // copy
+  // Shuffle questions
+  for(let i=qs.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [qs[i],qs[j]]=[qs[j],qs[i]];
+  }
+
+  testState = {
+    active: true,
+    grade,
+    questions: qs,
+    answers: new Array(qs.length).fill(null),
+    current: 0,
+    startTime: Date.now(),
+    timeLeft: 45 * 60,
+    timerInterval: null
+  };
+
+  show('s-test');
+  renderQuestion(0);
+  startTimer();
+}
+
+function renderQuestion(idx) {
+  const q = testState.questions[idx];
+  const total = testState.questions.length;
+  testState.current = idx;
+
+  document.getElementById('test-qnum').textContent = `Savol ${idx+1} / ${total}`;
+  document.getElementById('q-badge').textContent = `SAVOL ${idx+1}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('test-progress').style.width = ((idx+1)/total*100)+'%';
+
+  // Options
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn' + (testState.answers[idx] === i ? ' selected' : '');
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span><span class="opt-text">${opt}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    grid.appendChild(btn);
+  });
+
+  // Nav buttons
+  document.getElementById('btn-prev').disabled = (idx === 0);
+  const isLast = idx === total-1;
+  document.getElementById('btn-next').style.display = isLast ? 'none' : 'flex';
+  document.getElementById('btn-finish').style.display = isLast ? 'flex' : 'none';
+}
+
+function selectAnswer(optIdx) {
+  testState.answers[testState.current] = optIdx;
+  renderQuestion(testState.current);
+}
+
+function nextQ() {
+  if(testState.current < testState.questions.length-1)
+    renderQuestion(testState.current+1);
+}
+function prevQ() {
+  if(testState.current > 0)
+    renderQuestion(testState.current-1);
+}
+
+function askFinish() {
+  const unanswered = testState.answers.filter(a=>a===null).length;
+  if(unanswered > 0) {
+    document.querySelector('#modal-finish p').textContent =
+      `${unanswered} ta savolga javob bermagansiz. Baribir yakunlashni istaysizmi?`;
+    document.getElementById('modal-finish').classList.add('active');
+  } else {
+    confirmFinish();
+  }
+}
+function closeModal() { document.getElementById('modal-finish').classList.remove('active'); }
+
+async function confirmFinish() {
+  closeModal();
+  clearInterval(testState.timerInterval);
+  testState.active = false;
+  const elapsed = Math.floor((Date.now() - testState.startTime) / 1000);
+
+  let score = 0;
+  testState.questions.forEach((q, i) => {
+    if(testState.answers[i] === q.ans) score++;
+  });
+
+  const data = {
+    uid: currentUser.uid,
+    name: userProfile.name,
+    school: userProfile.school,
+    grade: userProfile.grade,
+    score,
+    total: 15,
+    answers: testState.answers,
+    correctMap: testState.questions.map((q,i)=>testState.answers[i]===q.ans),
+    elapsed,
+    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('results').doc(currentUser.uid).set(data);
+    renderResult(data);
+    show('s-result');
+    await checkTestStatus();
+  } catch(e) {
+    toast("Saqlashda xatolik! Internet bor-yo'qligini tekshiring.", 'error');
+    testState.active = true;
+    startTimer();
+  }
+}
+
+function renderResult(data) {
+  const score = data.score;
+  const pct = Math.round((score/15)*100);
+  const verdict = getVerdict(pct);
+  document.getElementById('res-score').textContent = score;
+  document.getElementById('res-pct').textContent = pct + '%';
+  document.getElementById('res-correct').textContent = score;
+  document.getElementById('res-wrong').textContent = 15 - score;
+  const mins = Math.floor((data.elapsed||0)/60);
+  const secs = (data.elapsed||0) % 60;
+  document.getElementById('res-time').textContent = `${mins}:${String(secs).padStart(2,'0')}`;
+  document.getElementById('result-trophy').textContent = verdict.emoji;
+  document.getElementById('verdict-emoji').textContent = verdict.badge;
+  document.getElementById('verdict-title').textContent = verdict.title;
+  document.getElementById('verdict-sub').textContent = verdict.sub;
+  const vc = document.getElementById('result-verdict');
+  vc.className = 'result-verdict ' + verdict.cls;
+}
+
+function getVerdict(pct) {
+  if(pct >= 80) return {
+    emoji:'🏆', badge:'🌟', cls:'aaa',
+    title:'A\'lo! Siz saralangansiz!',
+    sub:'Ajoyib natija! Siz kursga qabul qilishga munosibsiz. Tez orada muallim siz bilan bog\'lanadi.'
+  };
+  if(pct >= 60) return {
+    emoji:'🥈', badge:'👍', cls:'bb',
+    title:'Yaxshi natija!',
+    sub:'Yaxshi ishlayapsiz! Keyingi olimpiadada undan ham yaxshi natijaga erishishingiz mumkin.'
+  };
+  return {
+    emoji:'📚', badge:'💪', cls:'cc',
+    title:'Ko\'proq mashq qiling!',
+    sub:'Qatnashganingiz uchun rahmat! Matematikani ko\'proq o\'rganib, keyingi olimpiadada muvaffaqiyat qozoning.'
+  };
+}
+
+// ================================================================
+// TIMER
+// ================================================================
+function startTimer() {
+  updateTimerDisplay();
+  testState.timerInterval = setInterval(() => {
+    testState.timeLeft--;
+    updateTimerDisplay();
+    if(testState.timeLeft <= 0) {
+      clearInterval(testState.timerInterval);
+      toast('Vaqt tugadi! Natija avtomatik saqlanmoqda...', 'error');
+      confirmFinish();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(testState.timeLeft / 60);
+  const s = testState.timeLeft % 60;
+  document.getElementById('timer-text').textContent = `${m}:${String(s).padStart(2,'0')}`;
+  const box = document.getElementById('timer-box');
+  if(testState.timeLeft <= 300) box.classList.add('warning');
+  else box.classList.remove('warning');
+}
+
+// ================================================================
+// ADMIN PANEL
+// ================================================================
+async function loadAdmin() {
+  if(currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    return toast("Ruxsat yo'q!", 'error');
+  }
+  document.getElementById('admin-content').innerHTML =
+    '<div class="loading-spinner"><div class="spinner"></div>Natijalar yuklanmoqda...</div>';
+  try {
+    const snap = await db.collection('results').orderBy('submittedAt','desc').get();
+    allResults = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    renderAdminTable(allResults);
+    // Summary
+    document.getElementById('adm-total').textContent = allResults.length;
+    document.getElementById('adm-s3').textContent = allResults.filter(r=>r.grade==3).length;
+    document.getElementById('adm-s4').textContent = allResults.filter(r=>r.grade==4).length;
+    document.getElementById('adm-s5').textContent = allResults.filter(r=>r.grade==5).length;
+  } catch(e) {
+    document.getElementById('admin-content').innerHTML =
+      '<div class="loading-spinner">❌ Xatolik. Firestore rules tekshiring.</div>';
+  }
+}
+
+function filterAdmin(filter, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  let filtered = allResults;
+  if(filter === '3') filtered = allResults.filter(r=>r.grade==3);
+  if(filter === '4') filtered = allResults.filter(r=>r.grade==4);
+  if(filter === '5') filtered = allResults.filter(r=>r.grade==5);
+  if(filter === 'top') filtered = [...allResults].sort((a,b)=>b.score-a.score).slice(0,20);
+  renderAdminTable(filtered);
+}
+
+function renderAdminTable(data) {
+  if(!data.length) {
+    document.getElementById('admin-content').innerHTML =
+      '<div class="loading-spinner">📭 Hali natija yo\'q</div>';
+    return;
+  }
+  const rows = data.map((r,i) => {
+    const pct = Math.round((r.score/15)*100);
+    let rank;
+    if(pct>=80) rank = '<span class="rank-badge rank-a">⭐ Saralangan</span>';
+    else if(pct>=60) rank = '<span class="rank-badge rank-b">👍 Yaxshi</span>';
+    else rank = '<span class="rank-badge rank-c">📚 Qatnashdi</span>';
+    const date = r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString('uz') : '—';
+    return `<tr>
+      <td style="color:var(--text2)">${i+1}</td>
+      <td><strong>${r.name||'—'}</strong></td>
+      <td>${r.school||'—'}</td>
+      <td><span style="color:var(--gold)">${r.grade}-sinf</span></td>
+      <td><strong style="color:var(--text)">${r.score}/15</strong></td>
+      <td>${pct}%</td>
+      <td>${rank}</td>
+      <td style="color:var(--text2);font-size:12px">${date}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('admin-content').innerHTML = `
+    <div class="results-table-wrap">
+      <table>
+        <thead><tr>
+          <th>№</th><th>Ism Familiya</th><th>Maktab</th>
+          <th>Sinf</th><th>Ball</th><th>%</th><th>Holat</th><th>Sana</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function exportCSV() {
+  if(!allResults.length) return toast("Ma'lumot yo'q!", 'error');
+  const headers = ['Ism','Maktab','Sinf','Ball','Foiz','Holat','Sana'];
+  const rows = allResults.map(r => {
+    const pct = Math.round((r.score/15)*100);
+    const holat = pct>=80?'Saralangan':pct>=60?'Yaxshi':'Qatnashdi';
+    const date = r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString() : '';
+    return [r.name,r.school,r.grade+'-sinf',r.score,pct+'%',holat,date].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'KYMO_natijalar.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV yuklab olindi! 📥', 'success');
+}
+
+// ================================================================
+// TOAST
+// ================================================================
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
