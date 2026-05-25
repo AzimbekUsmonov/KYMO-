@@ -14,7 +14,7 @@ service cloud.firestore {
     match /results/{userId} {
       allow read: if request.auth != null &&
         (request.auth.uid == userId ||
-         request.auth.token.email == "admin@kymo.uz"); // ← ADMIN EMAIL
+         request.auth.token.email == "azimbekusmonov0919@gmail.com"); // ← ADMIN EMAIL
 
       allow create: if request.auth != null &&
         request.auth.uid == userId &&
