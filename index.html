@@ -987,17 +987,27 @@
 // ⚠️ FIREBASE CONFIG — O'Z LOYIHANGIZ CONFIG'ini QUYIDAGIGA QO'YING!
 // Firebase Console → Project Settings → Your apps → SDK setup
 // ================================================================
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA3_j0sjSY_aqnuxEKTU6GT2utHXT2rObo",
+  authDomain: "kymoolympiad.firebaseapp.com",
+  projectId: "kymoolympiad",
+  storageBucket: "kymoolympiad.firebasestorage.app",
+  messagingSenderId: "865041721204",
+  appId: "1:865041721204:web:599cab7591c764502f2e21"
 };
 
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+
 // ⚠️ ADMIN EMAIL — o'z emailingizni yozing (bosh harf bo'lmassin)
-const ADMIN_EMAIL = "admin@kymo.uz"; // ← BU YERNI O'ZGARTIRING!
+const ADMIN_EMAIL = "azimbekusmonov0919@gmail.com"; // ← BU YERNI O'ZGARTIRING!
 
 // ================================================================
 // QUESTIONS DATABASE — 15 ta savol × 3 sinf
