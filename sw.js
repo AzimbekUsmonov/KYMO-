@@ -1,5 +1,10 @@
-const CACHE = 'kymo-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'kymo-v2';
+const BASE = '/KYMO-/';
+const ASSETS = [
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
