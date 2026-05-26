@@ -3,6 +3,7 @@
   "short_name": "KYMO",
   "description": "3-4-5 sinf o'quvchilari uchun matematika olimpiadasi saralash testi",
   "start_url": "/KYMO-/",
+  "scope": "/KYMO-/",
   "display": "standalone",
   "background_color": "#020408",
   "theme_color": "#020408",
