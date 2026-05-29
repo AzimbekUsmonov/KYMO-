@@ -283,9 +283,8 @@
 <!-- ===== WELCOME ===== -->
 <div class="screen active" id="s-welcome">
   <div class="welcome-inner" style="margin:auto;">
-    <span class="logo-star">⭐</span>
-    <div class="kymo-title">KYMO</div>
-    <div class="kymo-sub"><strong>Kelajak Yulduzlari</strong><br>Matematika Olimpiadasi</div>
+    <img src="logo.png" alt="KYMO" style="width:180px;height:180px;object-fit:contain;margin-bottom:8px;filter:drop-shadow(0 0 24px rgba(74,120,255,0.5));animation:floatStar 3s ease-in-out infinite;">
+    <div class="kymo-sub" style="margin-top:4px;"><strong>Kelajak Yulduzlar</strong><br>Matematika Olimpiadasi</div>
     <div class="welcome-badge">🎓 3 · 4 · 5 — sinflar uchun</div>
     <div class="welcome-info">
       <div class="info-card"><div class="num">15</div><div class="lbl">Savol</div></div>
@@ -431,6 +430,7 @@
     <button class="adm-tab" onclick="adminTab('settings',this)">⚙️ Sozlamalar</button>
     <button class="adm-tab" onclick="adminTab('analysis',this)">📈 Tahlil</button>
     <button class="adm-tab" onclick="adminTab('selection',this)">🏆 Saralash</button>
+    <button class="adm-tab" onclick="adminTab('questions',this)">📝 Savollar</button>
   </div>
 
   <!-- OVERVIEW -->
@@ -520,6 +520,47 @@
       <h3><span>🏆</span> Saralash Boshqaruvi</h3>
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">O'quvchini "Saralangan" deb belgilang — u o'z sertifikatini ko'ra oladi.</div>
       <div id="selection-content"><div class="loading-spinner" style="padding:20px;"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- QUESTIONS -->
+  <div class="admin-panel" id="ap-questions">
+    <div class="filter-row">
+      <button class="fchip active" onclick="qFilterGrade(3,this)">3-sinf</button>
+      <button class="fchip" onclick="qFilterGrade(4,this)">4-sinf</button>
+      <button class="fchip" onclick="qFilterGrade(5,this)">5-sinf</button>
+    </div>
+    <div class="sec-card" style="margin-bottom:16px;">
+      <h3><span>➕</span> Yangi Savol Qo'shish</h3>
+      <div class="form-group"><label class="form-label">SAVOL MATNI</label><textarea class="form-input" id="q-new-text" rows="3" placeholder="Savol matni..."></textarea></div>
+      <div class="form-group"><label class="form-label">A VARIANT</label><input class="form-input" id="q-opt-0" type="text" placeholder="A javob"></div>
+      <div class="form-group"><label class="form-label">B VARIANT</label><input class="form-input" id="q-opt-1" type="text" placeholder="B javob"></div>
+      <div class="form-group"><label class="form-label">C VARIANT</label><input class="form-input" id="q-opt-2" type="text" placeholder="C javob"></div>
+      <div class="form-group"><label class="form-label">D VARIANT</label><input class="form-input" id="q-opt-3" type="text" placeholder="D javob"></div>
+      <div class="form-group"><label class="form-label">TO'G'RI JAVOB</label><select class="form-input" id="q-ans"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>
+      <button class="btn btn-gold" onclick="saveQuestion()">💾 Savolni saqlash</button>
+    </div>
+    <div class="sec-card">
+      <h3><span>📋</span> Savollar Ro'yxati <span id="q-count-badge" style="font-size:12px;color:var(--text2);font-family:var(--fb);font-weight:400;"></span></h3>
+      <div id="q-list-content"><div class="loading-spinner" style="padding:20px;"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT QUESTION MODAL -->
+<div class="modal-overlay" id="modal-edit-q">
+  <div class="modal-box" style="max-height:80vh;overflow-y:auto;">
+    <h3>✏️ Savolni tahrirlash</h3>
+    <input type="hidden" id="eq-id">
+    <div class="form-group" style="margin-top:16px;"><label class="form-label">SAVOL MATNI</label><textarea class="form-input" id="eq-text" rows="3"></textarea></div>
+    <div class="form-group"><label class="form-label">A</label><input class="form-input" id="eq-opt-0" type="text"></div>
+    <div class="form-group"><label class="form-label">B</label><input class="form-input" id="eq-opt-1" type="text"></div>
+    <div class="form-group"><label class="form-label">C</label><input class="form-input" id="eq-opt-2" type="text"></div>
+    <div class="form-group"><label class="form-label">D</label><input class="form-input" id="eq-opt-3" type="text"></div>
+    <div class="form-group"><label class="form-label">TO'G'RI JAVOB</label><select class="form-input" id="eq-ans"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-q')">Bekor</button>
+      <button class="btn btn-gold" onclick="updateQuestion()">💾 Saqlash</button>
     </div>
   </div>
 </div>
@@ -825,7 +866,16 @@ async function startTest(){
   if(!appConfig.testOpen) return toast("Test hozircha yopiq!",'error');
 
   const grade=userProfile.grade;
-  const qs=[...QUESTIONS[grade]];
+  // Load questions from Firestore, fallback to local
+  let qs;
+  try {
+    const snap = await db.collection('questions').where('grade','==',grade).get();
+    if(!snap.empty){
+      qs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    } else {
+      qs = [...QUESTIONS[grade]];
+    }
+  } catch(e){ qs=[...QUESTIONS[grade]]; }
   for(let i=qs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[qs[i],qs[j]]=[qs[j],qs[i]];}
 
   T={active:true,grade,questions:qs,answers:new Array(qs.length).fill(null),
@@ -1077,6 +1127,7 @@ function adminTab(name,btn){
   if(name==='settings')loadSettings();
   if(name==='analysis')loadAnalysis();
   if(name==='selection')loadSelection();
+  if(name==='questions'){qCurrentGrade=3;loadQuestions(3);}
 }
 
 async function loadAdminData(){
@@ -1375,6 +1426,96 @@ function adminDrawCert(data){
 // ================================================================
 // MODALS & UTILS
 // ================================================================
+// ================================================================
+// QUESTIONS MANAGEMENT
+// ================================================================
+let qCurrentGrade = 3;
+
+function qFilterGrade(grade, btn){
+  document.querySelectorAll('#ap-questions .fchip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  qCurrentGrade = grade;
+  loadQuestions(grade);
+}
+
+async function loadQuestions(grade){
+  document.getElementById('q-list-content').innerHTML = '<div class="loading-spinner" style="padding:20px;"><div class="spinner"></div></div>';
+  try {
+    const snap = await db.collection('questions').where('grade','==',grade).orderBy('createdAt','asc').get();
+    const qs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('q-count-badge').textContent = `(${qs.length} ta savol)`;
+    if(!qs.length){
+      document.getElementById('q-list-content').innerHTML = '<div style="color:var(--text2);font-size:14px;padding:8px 0;">Hali savol qo\'shilmagan. Yuqoridan qo\'shing!</div>';
+      return;
+    }
+    const letters=['A','B','C','D'];
+    const html = qs.map((q,i)=>`
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          <div style="font-size:14px;font-weight:600;flex:1;">${i+1}. ${q.q}</div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="action-btn primary" onclick='openEditQ(${JSON.stringify({id:q.id,q:q.q,opts:q.opts,ans:q.ans}).replace(/'/g,"\'")})'  style="padding:6px 10px;font-size:12px;">✏️</button>
+            <button class="action-btn danger" onclick="deleteQuestion('${q.id}')" style="padding:6px 10px;font-size:12px;">🗑️</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          ${q.opts.map((o,oi)=>`<div style="font-size:12px;padding:6px 10px;border-radius:8px;background:${oi===q.ans?'rgba(74,222,128,0.12)':'var(--bg3)'};border:1px solid ${oi===q.ans?'rgba(74,222,128,0.3)':'transparent'};color:${oi===q.ans?'var(--green)':'var(--text2)'};">${letters[oi]}. ${o}</div>`).join('')}
+        </div>
+      </div>`).join('');
+    document.getElementById('q-list-content').innerHTML = html;
+  } catch(e){
+    document.getElementById('q-list-content').innerHTML = '<div style="color:var(--red);">Xatolik. Firestore rules tekshiring.</div>';
+  }
+}
+
+async function saveQuestion(){
+  const qText = document.getElementById('q-new-text').value.trim();
+  const opts = [0,1,2,3].map(i=>document.getElementById('q-opt-'+i).value.trim());
+  const ans = parseInt(document.getElementById('q-ans').value);
+  if(!qText || opts.some(o=>!o)) return toast('Barcha maydonlarni to\'ldiring!','error');
+  try {
+    await db.collection('questions').add({
+      q: qText, opts, ans, grade: qCurrentGrade,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Clear form
+    document.getElementById('q-new-text').value='';
+    [0,1,2,3].forEach(i=>document.getElementById('q-opt-'+i).value='');
+    document.getElementById('q-ans').value='0';
+    toast('Savol qo\'shildi! ✅','success');
+    loadQuestions(qCurrentGrade);
+  } catch(e){ toast('Xatolik: '+e.message,'error'); }
+}
+
+function openEditQ(data){
+  document.getElementById('eq-id').value = data.id;
+  document.getElementById('eq-text').value = data.q;
+  data.opts.forEach((o,i)=>document.getElementById('eq-opt-'+i).value=o);
+  document.getElementById('eq-ans').value = data.ans;
+  openModal('modal-edit-q');
+}
+
+async function updateQuestion(){
+  const id = document.getElementById('eq-id').value;
+  const qText = document.getElementById('eq-text').value.trim();
+  const opts = [0,1,2,3].map(i=>document.getElementById('eq-opt-'+i).value.trim());
+  const ans = parseInt(document.getElementById('eq-ans').value);
+  if(!qText || opts.some(o=>!o)) return toast('Barcha maydonlarni to\'ldiring!','error');
+  try {
+    await db.collection('questions').doc(id).update({q:qText, opts, ans});
+    closeModal('modal-edit-q');
+    toast('Savol yangilandi ✅','success');
+    loadQuestions(qCurrentGrade);
+  } catch(e){ toast('Xatolik','error'); }
+}
+
+async function deleteQuestion(id){
+  if(!confirm('Bu savolni o\'chirishni tasdiqlaysizmi?')) return;
+  await db.collection('questions').doc(id).delete();
+  toast('Savol o\'chirildi 🗑️','success');
+  loadQuestions(qCurrentGrade);
+}
+
 function openModal(id){document.getElementById(id).classList.add('active');}
 function closeModal(id){document.getElementById(id).classList.remove('active');}
 

@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email == "azimbekusmonov0919@gmail.com";
+    }
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Config — hammasi o'qiy oladi, faqat admin yoza oladi
+    match /config/{doc} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Sessions — hammasi o'qiy oladi, faqat admin yoza oladi
+    match /sessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+
+      // Results — faqat o'zi o'qiy oladi, admin barchasini o'qiydi
+      match /results/{uid} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) &&
+          !exists(/databases/$(database)/documents/sessions/$(sessionId)/results/$(uid));
+        allow update: if isAdmin(); // Admin select qila oladi
+        allow delete: if false;
+      }
+    }
+
+    // Users — o'zi yoza oladi, admin barchasini o'qiydi/yoza oladi
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) || isAdmin();
+      allow delete: if false;
+    }
+  }
+}
