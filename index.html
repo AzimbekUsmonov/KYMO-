@@ -1441,7 +1441,7 @@ function qFilterGrade(grade, btn){
 async function loadQuestions(grade){
   document.getElementById('q-list-content').innerHTML = '<div class="loading-spinner" style="padding:20px;"><div class="spinner"></div></div>';
   try {
-    const snap = await db.collection('questions').where('grade','==',grade).orderBy('createdAt','asc').get();
+    const snap = await db.collection('questions').where('grade','==',grade).get();
     const qs = snap.docs.map(d=>({id:d.id,...d.data()}));
     document.getElementById('q-count-badge').textContent = `(${qs.length} ta savol)`;
     if(!qs.length){
